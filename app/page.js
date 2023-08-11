@@ -115,7 +115,7 @@ console.log(data)
           headers: {
             "Content-Type": "application/json",
             Authorization:
-              "Bearer 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",
+              "Bearer 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",
           },
         }
       );
