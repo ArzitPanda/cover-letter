@@ -1,113 +1,261 @@
-import Image from 'next/image'
+"use client";
+import Image from "next/image";
+import axios from "axios";
+import { useContext, useEffect, useState } from "react";
+import { getAuth, signInWithPopup, signOut } from "firebase/auth";
+import { db, provider } from "@/firebase/init";
+import ReactMarkdown from "react-markdown";
+import { useRouter } from "next/navigation";
+// import {useContext} from 'react'
+import { Store } from "./layout";
+import { createChat, createUser } from "@/firebase/store";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocFromCache,
+  getDocs,
+  increment,
+  updateDoc,
+} from "firebase/firestore";
+import Link from "next/link";
+import TemporaryDrawer from "@/components/Drawer";
+import Animations from "@/components/Skeleton";
+import { ChatBubbleTwoTone, Google } from "@mui/icons-material";
+import PaymentButton from "@/components/PaymentButton";
+import { Chip } from "@mui/material";
 
 export default function Home() {
+
+  const router = useRouter();
+  const [val, setVal] = useState("");
+  const [data, setData] = useState("");
+  const [chat, setChat] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [state, setState] = useState(false);
+  const [premium,setPremium]= useState({})
+
+  const userData = useContext(Store);
+
+  const getChat = async (uid) => {
+    const docRef = doc(db, "user", uid);
+    const chatData = [];
+    const chatRef = collection(docRef, "chat");
+    
+
+    const querySnapshot = await getDocs(chatRef);
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+
+      chatData.push({ ...data, id: doc.id });
+    });
+
+    setChat(chatData);
+
+    userData.setChatUser(chatData);
+  };
+
+  const auth = getAuth();
+
+  auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      // const data  = await getChat(userData.user.uid);
+
+      userData.setUser(user);
+    } else {
+      userData.setUser({});
+    }
+  });
+
+  useEffect(() => {
+    (async () => {
+      const uid = localStorage.getItem("uid");
+      const uservalue = await getDoc(doc(db, "user",uid));
+
+      const data = uservalue.data();
+console.log(data)
+      userData.setUser({...userData.user})
+    setPremium(data)
+      await getChat(uid || userData.user?.uid);
+    })();
+  }, []);
+
+  const onHandleInputChange = (e) => {
+    setVal(e.target.value);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    // if (val.trim() === '') return;
+
+    try {
+      const uservalue = await getDoc(doc(db, "user", userData.user?.uid));
+      const details = uservalue.data();
+      console.log(details);
+
+      setIsLoading(true);
+      const response = await axios.post(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          messages: [
+            {
+              role: "user",
+              content: `hello my name is ${
+                userData.user && userData.user?.displayName
+              } i want to apply for this job description ${val} make a suitable cover letter for the job which is impressive `,
+            },
+          ],
+          model: "gpt-3.5-turbo",
+          max_tokens: 250,
+          temperature: 0.7,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization:
+              "Bearer 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",
+          },
+        }
+      );
+
+      const chatResponse = response.data.choices[0];
+      setData(chatResponse.message?.content);
+      setIsLoading(false);
+
+      const user = userData.user?.uid;
+      await createChat(user, val, JSON.stringify(chatResponse));
+      const data = await getChat(user);
+      await updateDoc(doc(db, "user", user), { count: increment(1) });
+
+      console.log(data);
+    } catch (err) {
+      console.log(err);
+      setIsLoading(false);
+    }
+  };
+
+  const login = () => {
+    signInWithPopup(auth, provider)
+      .then(async (result) => {
+        // This gives you a Google Access Token. You can use it to access the Google API.
+        // const credential = GoogleAuthProvider.credentialFromResult(result);
+        // const token = credential.accessToken;
+        // The signed-in user info.
+        const user = result.user;
+
+        localStorage.setItem("uid", user.uid);
+        userData.setUser(user);
+
+        const data = await createUser(user.uid, user.displayName);
+
+        // IdP data available using getAdditionalUserInfo(result)
+        // ...
+      })
+      .catch((error) => {
+        // Handle Errors here.
+        console.log(error);
+
+        // ...
+      });
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.js</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="w-screen flex items-center justify-center flex-col">
+      <div className="w-full flex items-center justify-between h-32 bg-blue-500">
+      <div className="flex items-center w-2/5">
+      {Object.keys(userData.user).length > 0 ? (
+          <button
+            className="bg-white text-black font-mono h-24 w-56 px-2 rounded-lg mx-6 my-auto flex flex-col items-start justify-center "
+            onClick={async () => {
+              await signOut(auth);
+              userData.setUser(false);
+              router.push("/404")
+            }}
           >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+            <div className="flex flex-row items-center justify-between w-full px-6">
+              {userData.user.displayName}
+
+              <img
+                src={userData.user?.photoURL}
+                width={40}
+                height={40}
+                className="rounded-full"
+              />
+            </div>
+            <div className="bg-black text-white font-mono ml-6 p-2 px-6 rounded-xl">
+              logout
+            </div>
+          </button>
+        ) : (
+          <button
+            onClick={login}
+            className="bg-white text-black font-mono h-24 w-56 px-2 rounded-lg mx-6 my-auto"
+          >
+            Sign in With Google <Google />
+          </button>
+        )}
+
+        <button
+          className="text-white font-bold text-lg"
+          onClick={() => {
+            setState(!state);
+          }}
+        >
+          Your Chats <ChatBubbleTwoTone />
+        </button>
+      </div>
+      <div className="flex items-center justify-around w-1/6">
+  { premium?.premium===false && (   <PaymentButton/>)}
+      {premium?.premium===true?(  <Chip label="pro" color="warning" size="medium" />):  (<Chip label="basic" color="primary" size="medium" />)}
+          <div className="text-white font-medium text-lg">
+            {premium?.premium===true?`remaining ${200-premium.count}`:(<div>
+
+
+             <p>{`remaining ${10-premium.count}`}</p> 
+        
+
+            </div>) }
+          </div>
+
+      </div>
+
+
+
+      </div>
+
+      <div className="flex flex-col items-center justify-center mt-9 gap-4S w-3/5">
+        <input
+          type="text"
+          placeholder="paste company's requirement"
+          onChange={(e) => {
+            onHandleInputChange(e);
+          }}
+          value={val}
+          className="my-2 border-2 w-full py-2 px-6 focus:outline-none hover:border-blue-700  hover:border-4 transition-colors rounded-2xl h-24 placeholder:text-blue-500  border-blue-600 caret-black text-lg font-mono"
+        />
+        <button
+          onClick={handleSubmit}
+          className="mb-2 h-12 block w-full rounded border-2 border-primary px-6 pb-[6px] pt-2 text-xs font-medium uppercase leading-normal text-blue-500     transition duration-150 ease-in-out hover:border-primary-600 hover:bg-neutral-500 hover:bg-opacity-10 hover:text-primary-600 focus:border-primary-600 focus:text-primary-600 focus:outline-none focus:ring-0 active:border-primary-700 active:text-primary-700 dark:hover:bg-neutral-100 dark:hover:bg-opacity-10"
+        >
+          Generate
+        </button>
+        <div className="mt-20">
+          {isLoading ? (
+            <Animations />
+          ) : (
+            <div className="bg-gray-200 text-black mt-6   w-full">
+              <ReactMarkdown className="p-2">{data && data}</ReactMarkdown>
+
+              {/* text to be shown */}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800 hover:dark:bg-opacity-30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore the Next.js 13 playground.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+      <TemporaryDrawer data={chat} state={state} setState={setState} />
+   
+    </div>
+  );
 }
