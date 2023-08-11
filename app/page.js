@@ -197,6 +197,7 @@ console.log(data)
           </button>
         )}
 
+
         <button
           className="text-white font-bold text-lg"
           onClick={() => {
@@ -206,6 +207,10 @@ console.log(data)
           Your Chats <ChatBubbleTwoTone />
         </button>
       </div>
+          <div className="text-white font-mono text-lg">
+            first draft 1.0()
+          </div>
+
       <div className="flex items-center justify-around w-1/6">
   { premium?.premium===false && (   <PaymentButton/>)}
       {premium?.premium===true?(  <Chip label="pro" color="warning" size="medium" />):  (<Chip label="basic" color="primary" size="medium" />)}
