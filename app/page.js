@@ -168,8 +168,8 @@ console.log(data)
 
   return (
     <div className="w-screen flex items-center justify-center flex-col">
-      <div className="w-full flex items-center justify-between h-32 bg-blue-500">
-      <div className="flex items-center w-2/5">
+      <div className="w-full flex flex-col lg:flex-row items-center justify-between  h-44 py-2 lg:h-32 bg-blue-500">
+      <div className="flex items-center w-full justify-between lg:justify-center px-2 py-4  lg:w-2/5 ">
       {Object.keys(userData.user).length > 0 ? (
           <button
             className="bg-white text-black font-mono h-24 w-56 px-2 rounded-lg mx-6 my-auto flex flex-col items-start justify-center "
@@ -212,21 +212,24 @@ console.log(data)
           Your Chats <ChatBubbleTwoTone />
         </button>
       </div>
-          <div className="text-white font-mono text-lg">
+      
+
+      <div className="flex items-center justify-between px-6 lg:justify-around w-full lg:w-1/6">
+      <div className="text-white font-mono text-lg">
             first draft 1.0()
           </div>
-
-      <div className="flex items-center justify-around w-1/6">
+          <div className="flex">
   { premium?.premium===false && (   <PaymentButton/>)}
       {premium?.premium===true?(  <Chip label="pro" color="warning" size="medium" />):  (<Chip label="basic" color="primary" size="medium" />)}
-          <div className="text-white font-medium text-lg">
-            {premium?.premium===true?`remaining ${200-premium.count}`:(<div>
+          <div className="text-white font-medium text-lg  px-4">
+            {premium?.premium===true?`remaining ${200-premium.count}`:(<div className="py-4">
 
 
-             <p>{`remaining ${10-premium.count}`}</p> 
+             <p className="py-4">{`remaining ${10-premium.count}`}</p> 
         
 
             </div>) }
+            </div>
           </div>
 
       </div>
