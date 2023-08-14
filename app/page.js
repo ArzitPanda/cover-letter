@@ -30,6 +30,8 @@ export default function Home() {
 
   const token = process.env.API_KEY
 
+  // console.log(token)
+// 
   const router = useRouter();
   const [val, setVal] = useState("");
   const [data, setData] = useState("");
