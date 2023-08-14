@@ -27,6 +27,9 @@ import { Chip } from "@mui/material";
 
 export default function Home() {
 
+
+  const token = process.env.API_KEY
+
   const router = useRouter();
   const [val, setVal] = useState("");
   const [data, setData] = useState("");
@@ -115,7 +118,7 @@ console.log(data)
           headers: {
             "Content-Type": "application/json",
             Authorization:
-              "Bearer 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",
+              `Bearer ${token}`,
           },
         }
       );
