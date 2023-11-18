@@ -23,7 +23,7 @@ import TemporaryDrawer from "@/components/Drawer";
 import Animations from "@/components/Skeleton";
 import { ChatBubbleTwoTone, Google } from "@mui/icons-material";
 import PaymentButton from "@/components/PaymentButton";
-import { Chip } from "@mui/material";
+import { Alert, Backdrop, Chip } from "@mui/material";
 
 export default function Home() {
 
@@ -39,6 +39,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [state, setState] = useState(false);
   const [premium,setPremium]= useState({})
+
+  const [isPremiumPopUp,setIsPremiumPopUp]= useState(false);
 
   const userData = useContext(Store);
 
@@ -77,9 +79,10 @@ export default function Home() {
     (async () => {
       const uid = localStorage.getItem("uid");
       const uservalue = await getDoc(doc(db, "user",uid));
+     
 
       const data = uservalue.data();
-console.log(data)
+      console.log(data)
       userData.setUser({...userData.user})
     setPremium(data)
       await getChat(uid || userData.user?.uid);
@@ -92,6 +95,22 @@ console.log(data)
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if(userData.user?.premium === false && userData.user?.count>2)
+    {
+      setIsPremiumPopUp(true);
+      return;
+    
+    }
+if(userData.user?.premium === true && userData.user?.count>200)
+{
+  setIsPremiumPopUp(true);
+  return;
+
+}
+
+      
+
+
 
     // if (val.trim() === '') return;
 
@@ -144,10 +163,7 @@ console.log(data)
   const login = () => {
     signInWithPopup(auth, provider)
       .then(async (result) => {
-        // This gives you a Google Access Token. You can use it to access the Google API.
-        // const credential = GoogleAuthProvider.credentialFromResult(result);
-        // const token = credential.accessToken;
-        // The signed-in user info.
+ 
         const user = result.user;
 
         localStorage.setItem("uid", user.uid);
@@ -168,6 +184,15 @@ console.log(data)
 
   return (
     <div className="w-screen flex items-center justify-center flex-col">
+        <Backdrop
+  sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+  open={isPremiumPopUp}
+  onClick={()=>{setIsPremiumPopUp(false)}}
+>
+<div>buy a premium account</div>
+</Backdrop>
+
+
       <div className="w-full flex flex-col lg:flex-row items-center justify-between  h-44 py-2 lg:h-32 bg-blue-500">
       <div className="flex items-center w-full justify-between lg:justify-center px-2 py-4  lg:w-2/5 ">
       {Object.keys(userData.user).length > 0 ? (
