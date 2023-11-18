@@ -26,21 +26,17 @@ import PaymentButton from "@/components/PaymentButton";
 import { Alert, Backdrop, Chip } from "@mui/material";
 
 export default function Home() {
-
-
-  const token = process.env.API_KEY
+  const token = process.env.API_KEY;
 
   // console.log(token)
-// 
+  //
   const router = useRouter();
   const [val, setVal] = useState("");
   const [data, setData] = useState("");
   const [chat, setChat] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [state, setState] = useState(false);
-  const [premium,setPremium]= useState({})
-
-  const [isPremiumPopUp,setIsPremiumPopUp]= useState(false);
+  const [premium, setPremium] = useState({});
 
   const userData = useContext(Store);
 
@@ -48,7 +44,6 @@ export default function Home() {
     const docRef = doc(db, "user", uid);
     const chatData = [];
     const chatRef = collection(docRef, "chat");
-    
 
     const querySnapshot = await getDocs(chatRef);
 
@@ -78,13 +73,12 @@ export default function Home() {
   useEffect(() => {
     (async () => {
       const uid = localStorage.getItem("uid");
-      const uservalue = await getDoc(doc(db, "user",uid));
-     
+      const uservalue = await getDoc(doc(db, "user", uid));
 
       const data = uservalue.data();
-      console.log(data)
-      userData.setUser({...userData.user})
-    setPremium(data)
+      console.log(data);
+      userData.setUser({ ...userData.user });
+      setPremium(data);
       await getChat(uid || userData.user?.uid);
     })();
   }, []);
@@ -138,10 +132,9 @@ if(userData.user?.premium === true && userData.user?.count>200)
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization:
-              `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const chatResponse = response.data.choices[0];
@@ -184,83 +177,71 @@ if(userData.user?.premium === true && userData.user?.count>200)
 
   return (
     <div className="w-screen flex items-center justify-center flex-col">
-        <Backdrop
-  sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
-  open={isPremiumPopUp}
-  onClick={()=>{setIsPremiumPopUp(false)}}
->
-<div>buy a premium account</div>
-</Backdrop>
+      <div className="w-full flex flex-col lg:flex-row items-center justify-between  h-20 py-2 lg:h-24 bg-blue-500">
+        <div className="flex items-center w-full justify-between lg:justify-start px-2 py-4  lg:w-2/5 ">
+          {Object.keys(userData.user).length > 0 ? (
+            <button
+              className="bg-white text-black font-mono h-24 w-56 px-2 rounded-lg mx-6 my-auto flex flex-col items-start justify-center "
+              onClick={async () => {
+                await signOut(auth);
+                userData.setUser(false);
+                router.push("/404");
+              }}
+            >
+              <div className="flex flex-row items-center justify-between w-full px-6">
+                {userData.user.displayName}
 
+                <img
+                  src={userData.user?.photoURL}
+                  width={40}
+                  height={40}
+                  className="rounded-full"
+                />
+              </div>
+              <div className="bg-black text-white font-mono ml-6 p-2 px-6 rounded-xl">
+                logout
+              </div>
+            </button>
+          ) : (
+            <button
+              onClick={login}
+              className="bg-white text-black font-mono h-16 w-40 px-2 rounded-lg mx-6 my-auto"
+            >
+              Sign in With Google <Google size={10} />
+            </button>
+          )}
 
-      <div className="w-full flex flex-col lg:flex-row items-center justify-between  h-44 py-2 lg:h-32 bg-blue-500">
-      <div className="flex items-center w-full justify-between lg:justify-center px-2 py-4  lg:w-2/5 ">
-      {Object.keys(userData.user).length > 0 ? (
           <button
-            className="bg-white text-black font-mono h-24 w-56 px-2 rounded-lg mx-6 my-auto flex flex-col items-start justify-center "
-            onClick={async () => {
-              await signOut(auth);
-              userData.setUser(false);
-              router.push("/404")
+            className="text-white font-bold text-lg flex flex-col items-center justify-center gap-2"
+            onClick={() => {
+              setState(!state);
             }}
           >
-            <div className="flex flex-row items-center justify-between w-full px-6">
-              {userData.user.displayName}
-
-              <img
-                src={userData.user?.photoURL}
-                width={40}
-                height={40}
-                className="rounded-full"
-              />
-            </div>
-            <div className="bg-black text-white font-mono ml-6 p-2 px-6 rounded-xl">
-              logout
-            </div>
+            <ChatBubbleTwoTone />
+            <h1> Your Chats</h1>
           </button>
-        ) : (
-          <button
-            onClick={login}
-            className="bg-white text-black font-mono h-24 w-56 px-2 rounded-lg mx-6 my-auto"
-          >
-            Sign in With Google <Google />
-          </button>
-        )}
+        </div>
 
-
-        <button
-          className="text-white font-bold text-lg"
-          onClick={() => {
-            setState(!state);
-          }}
-        >
-          Your Chats <ChatBubbleTwoTone />
-        </button>
-      </div>
-      
-
-      <div className="flex items-center justify-between px-6 lg:justify-around w-full lg:w-1/6">
-      <div className="text-white font-mono text-lg">
-            first draft 1.0()
-          </div>
+        <div className="flex items-center justify-between px-6 lg:justify-around w-full lg:w-1/6">
+          <div className="text-white font-mono text-lg">first draft 1.0()</div>
           <div className="flex">
-  { premium?.premium===false && (   <PaymentButton/>)}
-      {premium?.premium===true?(  <Chip label="pro" color="warning" size="medium" />):  (<Chip label="basic" color="primary" size="medium" />)}
-          <div className="text-white font-medium text-lg  px-4">
-            {premium?.premium===true?`remaining ${200-premium.count}`:(<div className="py-4">
-
-
-             <p className="py-4">{`remaining ${10-premium.count}`}</p> 
-        
-
-            </div>) }
+            {premium?.premium === false && <PaymentButton />}
+            {premium?.premium === true ? (
+              <Chip label="pro" color="warning" size="medium" />
+            ) : (
+              <Chip label="basic" color="primary" size="medium" />
+            )}
+            <div className="text-white font-medium text-lg  px-4">
+              {premium?.premium === true ? (
+                `remaining ${200 - premium.count}`
+              ) : (
+                <div className="py-4">
+                  <p className="py-4">{`remaining ${10 - premium.count}`}</p>
+                </div>
+              )}
             </div>
           </div>
-
-      </div>
-
-
-
+        </div>
       </div>
 
       <div className="flex flex-col items-center justify-center mt-9 gap-4S w-3/5">
@@ -293,7 +274,6 @@ if(userData.user?.premium === true && userData.user?.count>200)
       </div>
 
       <TemporaryDrawer data={chat} state={state} setState={setState} />
-   
     </div>
   );
 }
