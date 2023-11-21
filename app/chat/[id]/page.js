@@ -16,9 +16,11 @@ export default function Page({ params }) {
 
   const auth = getAuth();
 
+
+  
   useEffect(() => {
     const checkData = async () => {
-      console.log(data);
+      // console.log(data);
 
       if (data.chatUser.length === 0) {
         const chatRef = doc(
@@ -42,13 +44,17 @@ export default function Page({ params }) {
 
   const { chatUser } = data;
 
+  // const router = useRouter()
+
   return (
     <div className="flex justify-center items-center h-screen bg-gray-100">
 
       <div>
         <div className="absolute top-10 left-10 flex items-center justify-center gap-4">
           <ArrowBack height={10} onClick={()=>{
-            // window.history.back()
+            window.history.back()
+            // router.back()
+
           }}/>
           <img src={auth.currentUser?.photoURL} alt="img.png" className="w-30 h-30 rounded-full "/>
         </div>
